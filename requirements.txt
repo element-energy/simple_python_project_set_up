@@ -1,2 +1,9 @@
+# Freeze the versions when you are using it for your repository
+# Not done for this example as it should be transfarable across projects, python and package versions
 pandas
 numpy
+pytest
+pytest-cov
+black
+pylint
+mypy

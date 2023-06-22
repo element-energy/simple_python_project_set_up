@@ -1,0 +1,59 @@
+# This has been edited from the template located at:
+# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Python.gitlab-ci.yml
+
+# Official language image. Look for the different tagged releases at:
+# https://hub.docker.com/r/library/python/tags/
+image: python:latest
+
+# Change pip's cache directory to be inside the project directory since we can
+# only cache local items.
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+stages:
+  - unit testing
+  - integration testing
+  - linting
+
+# Pip's cache doesn't store the python packages
+# https://pip.pypa.io/en/stable/topics/caching/
+#
+# If you want to also cache the installed packages, you have to install
+# them in a virtualenv and cache it as well.
+cache:
+  paths:
+    - .cache/pip
+
+before_script:
+  - python --version  # For debugging
+  - pip install -r requirements.txt
+
+unit_testing:
+  stage: unit testing
+  script:
+    - pytest --cov=./model/ ./tests/unit_tests/
+  only:
+    - merge_requests
+    - develop
+    - master
+
+methodology_testing:
+  stage: integration testing
+  script:
+    - pytest --cov=./model/ ./tests/integration_tests/
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == 'main'
+    - if: $CI_COMMIT_BRANCH == 'main'
+    - if: $CI_COMMIT_BRANCH == 'develop'
+
+linting:
+  stage: linting
+  script:
+    - black ./model/ ./tests/ *.py --check --verbose --diff --color
+    - pylint ./model/ ./tests/ run.py --rcfile .pylintrc
+    - isort --profile black ./model/ ./tests/ run.py -c
+    - mypy ./model/ ./tests/ run.py
+  only:
+    - merge_requests
+    - develop
+    - master
